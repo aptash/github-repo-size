@@ -3,10 +3,12 @@
 const API = 'https://api.github.com/repos/'
 const LI_TAG_ID = 'github-repo-size'
 const GITHUB_TOKEN_KEY = 'x-github-token'
+const SELECT_MEASURE_TAG_ID = 'github-repo-size-measure'
+const GITHUB_SIZE_MEASURE = 'GITHUB-SIZE-MEASURE'
 
 const storage = chrome.storage.sync || chrome.storage.local
 
-let githubToken
+let githubToken, repoSizeMeasure
 
 const getRepoObject = () => {
   // find file button
@@ -46,7 +48,7 @@ const getHumanReadableSizeObject = (bytes) => {
 
   const K = 1024
   const MEASURE = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-  const i = Math.floor(Math.log(bytes) / Math.log(K))
+  const i = repoSizeMeasure === 'AUTO' ? Math.floor(Math.log(bytes) / Math.log(K)) : MEASURE.indexOf(repoSizeMeasure)
 
   return {
     size: parseFloat((bytes / Math.pow(K, i)).toFixed(2)),
@@ -71,7 +73,21 @@ const getSizeHTML = (size) => {
     '<path d="M6 15c-3.31 0-6-.9-6-2v-2c0-.17.09-.34.21-.5.67.86 3 1.5 5.79 1.5s5.12-.64 5.79-1.5c.13.16.21.33.21.5v2c0 1.1-2.69 2-6 2zm0-4c-3.31 0-6-.9-6-2V7c0-.11.04-.21.09-.31.03-.06.07-.13.12-.19C.88 7.36 3.21 8 6 8s5.12-.64 5.79-1.5c.05.06.09.13.12.19.05.1.09.21.09.31v2c0 1.1-2.69 2-6 2zm0-4c-3.31 0-6-.9-6-2V3c0-1.1 2.69-2 6-2s6 .9 6 2v2c0 1.1-2.69 2-6 2zm0-5c-2.21 0-4 .45-4 1s1.79 1 4 1 4-.45 4-1-1.79-1-4-1z"></path>',
     '</svg>',
     `<span class="num text-emphasized"> ${humanReadableSize.size}</span> ${humanReadableSize.measure}`,
-    '</li>'
+    '</li>',
+    `<li>
+      <select class="form-select form-select" name="measure" id="${SELECT_MEASURE_TAG_ID}">
+        <option value="AUTO">AUTO</option>
+        <option value="B">B</option>
+        <option value="KB">KB</option>
+        <option value="MB">MB</option>
+        <option value="GB">GB</option>
+        <option value="TB">TB</option>
+        <option value="PB">PB</option>
+        <option value="EB">EB</option>
+        <option value="ZB">ZB</option>
+        <option value="YB">YB</option>
+      </select>
+    </li>`,
   ].join('')
 }
 
@@ -106,6 +122,11 @@ const getAPIData = (uri) => {
 
 const getFileName = text => text.trim().split('/')[0]
 
+const onMeasureChanged = (event) => {
+  storage.set({'GITHUB-SIZE-MEASURE': event.target.value})
+  repoSizeMeasure = event.target.value;
+}
+
 const checkForRepoPage = async () => {
   const repoObj = getRepoObject()
   if (!repoObj) return
@@ -122,6 +143,10 @@ const checkForRepoPage = async () => {
         newLiElem.title = 'Click to load folder sizes'
         newLiElem.style.cssText = 'cursor: pointer'
         newLiElem.onclick = loadFolderSizes
+
+        const elSelectMeasure = document.getElementById(SELECT_MEASURE_TAG_ID)
+        elSelectMeasure.value = repoSizeMeasure
+        elSelectMeasure.addEventListener('change', onMeasureChanged)
       }
     })
   }
@@ -226,8 +251,9 @@ const loadFolderSizes = async () => {
   }
 }
 
-storage.get(GITHUB_TOKEN_KEY, function (data) {
+storage.get([GITHUB_TOKEN_KEY, GITHUB_SIZE_MEASURE], function (data) {
   githubToken = data[GITHUB_TOKEN_KEY]
+  repoSizeMeasure = data[GITHUB_SIZE_MEASURE] ? data[GITHUB_SIZE_MEASURE] : 'AUTO'
 
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (changes[GITHUB_TOKEN_KEY]) {
