@@ -4,6 +4,10 @@
 
 За основу взято расширение для браузера Google Chrome: [GitHub Repository Size](https://github.com/harshjv/github-repo-size)
 
+## Screenshot
+
+![Screenshot of repository size on GitHub](https://raw.githubusercontent.com/aptash/github-repo-size/master/screenshot.png)
+
 ## Задание
 
 Имеется готовое расширение для браузера Google Chrome: [GitHub Repository Size](https://github.com/harshjv/github-repo-size)  
